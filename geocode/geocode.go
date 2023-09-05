@@ -1,12 +1,15 @@
-package main
+package geocode
 
 import (
 	"database/sql/driver"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"fmt"
+	"strings"
 
+	geom "github.com/twpayne/go-geom"
 	"github.com/twpayne/go-geom/encoding/wkb"
+	"github.com/twpayne/go-geom/encoding/wkbhex"
 )
 
 type GeoPoint struct {
@@ -23,7 +26,12 @@ func (g GeoPoint) GormDBDataType() string {
 }
 
 func (p *GeoPoint) String() string {
-	return fmt.Sprintf("SRID=4326;POINT(%v %v)", p.Lng, p.Lat)
+	point := geom.NewPoint(geom.XY)
+	point.SetCoords([]float64{p.Lat, p.Lng})
+
+	value, _ := wkbhex.Encode(point, binary.LittleEndian)
+
+	return strings.ToUpper(value)
 }
 
 func (p *GeoPoint) Scan(val interface{}) error {

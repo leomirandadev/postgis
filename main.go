@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/leomirandadev/postgis/geocode"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -12,6 +13,18 @@ func main() {
 	db := newDB()
 
 	db.migrate()
+
+	newPlace := Place{
+		Name: "New Place 2",
+		Geocode: geocode.GeoPoint{
+			Lat: 10.01,
+			Lng: 20,
+		},
+	}
+
+	if err := db.insertPlace(newPlace); err != nil {
+		log.Fatal("[MAIN ERROR]", err)
+	}
 
 	places, err := db.getLocationsCloser(10.01, 20, 20)
 	if err != nil {
@@ -38,9 +51,9 @@ func newDB() DB {
 }
 
 type Place struct {
-	ID      int      `json:"id" gorm:"id"`
-	Name    string   `json:"name" gorm:"name"`
-	Geocode GeoPoint `json:"geocode" gorm:"geocode"`
+	ID      int              `json:"id" gorm:"id"`
+	Name    string           `json:"name" gorm:"name"`
+	Geocode geocode.GeoPoint `json:"geocode" gorm:"geocode"`
 }
 
 func (d DB) getLocationsCloser(lat, lng, radiusMiles float64) ([]Place, error) {
@@ -54,6 +67,12 @@ func (d DB) getLocationsCloser(lat, lng, radiusMiles float64) ([]Place, error) {
 	`, lat, lng, milesToMeter(radiusMiles)).Find(&rows)
 
 	return rows, result.Error
+}
+
+func (d DB) insertPlace(newPlace Place) error {
+	result := d.dbConn.Create(&newPlace)
+
+	return result.Error
 }
 
 func (d DB) migrate() {
